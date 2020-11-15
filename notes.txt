@@ -1,0 +1,288 @@
+1. we can switch to local terminal from container terminal by ctrl+p than ctrl+q. this will not suspend the container's terminal but will detach from it. Note it will only work if u run it with -it
+so, to switch back to cntr's terminal, run: docker attach <cntr name or id>. 
+2. By ctrl+d on cntr's terminal we terminate the terminal and if it is the single process of container running then ctrl+d will terminate the whole cntr.
+3. docker run --rm <cntr name> docker will delete cntr once it is stopped
+4. Docker acheives isolation using linux feature called: "namespace". some are: "net namespace" for networking, "mount namespace" for file system, pid for processes
+5. Docker is software container platform that helps to develop test ship and run an app
+docker container stop <CONTAINER NAME>:  command will stop a container.
+6. docker container inspect cntr-name
+IMAGES
+1. CONTAINER images are blueprit of software containers. Purpose of images are to package the application in a portable and executable format. Images contains all dependencies required to run the app in the image. All is needed to run that image and it will take care of every dependencies needed.
+2. <docker image ls > or <docker images> lists all available images
+3. <docker image pull img-name> will pull/download image but not run it.
+4. We can tag an image with multiple name. But image id of image will be same for different tags.
+5. Docker hub is frontend of docker image registry and an image registry contains multiple repositories and each repository can contains multiple images.
+6. official docker images get scanned for security vulnerbilities but not public images. Before using any docker official image check for security vulnerbilities inside tags section.
+7. Same image registry is used by docker hub,cloud, store. All 3 has different fns. like, selling and exploring of images can be done at docker store and mgmt of repo done at docker cloud.
+8. You create your own custom image by writting a docker file. That dockerfile starts from a based image and then further instructions are written to customize base image.
+9. Example to create custom image: building an alpine image with bash shell
+   create a file: vim Dockerfile
+   write: 	from alpine:latest
+			RUN apk update
+			RUN apk add bash
+			CMD bash
+	save:	<esc><:wq>
+	run cmd: docker build -t myalpine:bash .		dot indicates current dir has Dockerfile
+	check: docker container run -it myalpine:bash
+10. $ or # at start of line will comment line in Dockerfile
+11. To upload your custom image you first have to give it a namespace. Official image of alpine has its root namespace but my custom image. Ex:
+	<docker image tag myalpine:bash bablushaw1596/myalpine:bash> then <docker push bablushaw1596/myalpine:bash> it will push if docker login is good with username: bablushaw1596
+12. Management like delete image etc. of pushed repo is done at docker cloud at cloud.docker.com
+13. Docker has plugin management cli called "plugin". Find required plugin list at docker store plugin section.
+14. To ues 3rd party image registry, get userid, password from there. Over CLI: docker login <domain-name>. Ex: docker login quay.io then username & pass
+15. push image to 3rd party by by tagging the image in fromat: domain/user/image:tag ex: quay.io/bablushaw23/myalpine:bash
+16. to pull from 3rd party: quay.io/bablushaw23/myalpine:bash
+17. Docker Store is a marketplace to discover, share, sell and buy container images, plugins and more.
+18. RUN command is Dockerfile instruction will execute a shell command in the context of the image while building it.
+19. with docker stop cmd, a signal SIGTERM is passed to container to let container terminate by itself gacefully. If container doesn't terminate by itself then docker forcefully terminate it by sending SIGKILL signal after a certain time which by default is: 10sec.
+20. Docker kill cmd terminates container instantly forcefully.
+21. The first process starts inside container is with PID 1. check by echo $$ So technically, that will be parent process of all other processes. So docker has to kill that process only to make the container stop.
+22. A container doesn't write a log file but it pass logs to STDOUT..but if we strictly required to write into file..we can do this by saving dev/stdout to a file.
+23. Differnent signals:
+	1. SIGTERM: program termination signal, for gracefully stop, sent by clicking on cross sign, can be ignored
+	2. SIGINT : program interrupt signal, sent by ctrl+c, can be ignored 
+	3. SIGKILL : program kill signal, cannot be ignored
+ex: docker exec -u 0 -it 12757 bash use this to have root access
+
+VOLUMES
+24. Ex: docker run -v /root/bablu/documents/html:/var/www/html:ro nginx:latest
+	Here -v (or --volume) is for volume mount. Here /root/ is user's dir and /var/www/html is container's dir. :ro for readonly. So the container's process will not be able to write in dir.
+	Above dir locn of host machine are absolute path but sometimes we want to use relative path. for that: docker run -v "$(pwd)/html":/var/www/html:ro nginx:latest
+25. docker run --mount type=bind,src="$(pwd)/html,destination=/var/www/html,readonly nginx:latest
+		Here mount and volume can work interchangabely but mount is bit more expressive.
+		Remove src to make ananymous volume, u can use dst instead of destination
+26. Types of volume mount:
+		1. anonymous volume: docker run -v /var/www/html nginx. This is ananymous volume created by docker. You can get all docker volumes by: docker volume ls. difference b/w docker volume and bind is that bind volume is managed by host OS filesystem and ananymous filesystem is managed by docker
+		2. named volume: docker run -v aname:/var/www/html nginx. Same as ananymous but has a name, can also listed by docker volume ls
+		3. bind mount: example above: managed by file system of host os and alsobefore re deploy same container, its volume needed to mount to same dir to get the persistent data. A bind mount relies on the file system structure of the Docker host.
+	difference in volume and mount is, volumen is created and managed by docker and doesn't rely on file-system of os but bind does.
+27. docker volume inspect vlm-name<get list of volume from docker volume ls>
+28. by: docker volume rm vlm-name , you cna delete a currently unused volume. currently used volume can't be deleted. By doing docker volume prune , delete all unused volume at once.
+29. in docker run --rm cnt-name --rm removes the container just after the container stops. if ananymous volume is assigned to the cntr, it will also get deleted
+30. volume create by 1 container can be used by another container with r/w access. This way you can acheive persistance
+31. A case might happen when you need to create a volume and prepopulate data into it before it could be used by a container. Can do this by: docker volume create vlm-name
+32. when to choose bind or volume?
+use bind:
+	1. when u want to access data of host machine to container, like mp3, source code, configuration, in short which is not generated by a container
+use volume when:
+	1. when u want to pesist data, share data between containers, like to backup etc.in short data made by comtainer.
+33. You can mount all volume from another container by: --volumes-from
+34. What happens when you mount a new volume to a path that already contains files and directories? The files and directories will be copied into the volume.
+35. What happens when you mount an existing volume to a path that already contains files and directories? You will only have access to the data in the volume, not the pre-existing data inside the container.
+
+Images
+36. To build image, docker copies the content of a dir mantionde, not sub-directory, but content of sub-directory. so all contents inside a dir except sub-dir will be copied and dumped to a single folder.
+37. Difference in copy and ADD in dockerfile: copy used to copy only host machine file but add can does 2 more things, extract files from .tar.gz got from host into container, and can download files from online to container.
+38. by adding .dockerignore we can ignore files to be container in container and many more
+
+NETWORKING
+**In terms of networking, a bridge network is a Link Layer device which forwards traffic between network segments. 
+39. docker run --link <running cntr name, say web> -it alpine this will make web linked to alpine so alpine can call web. In inside, ip address of web is added in /etc/hosts file of alpine. However links are depricited for 1 disadvantage, if web container is removed and created again it will have new ip address so alpine can not be able to contact web.
+40. links are depreciated, use user defined networks..
+41. list all created networks: docker network ls
+42. we can create our own network by: docker network create mynet It will create a bridged network by default. to inspect the network: docker network inspect mynet connect network with pod: docker run --network mynet nginx To remove existing unused network: docker network rm mynet
+43. Two container with same user defined network mynet1 can ping each other by container name(with ip address, also). it does so by using DNS which made by docker exclusively for mynet1 while creating the network mynet1. So network mynet2's containers cant reach containers at mynet1.
+44. If a container run with no network assigned, default network named, bridge will be allocated to it where docker doesn't provide its DNS. So containers at same network named, bridge cannot ping themselves by container name, but yes, as they are in same network they can ping by their IP. However, container with different network, cannot ping by ip as well.
+45. docker run --ip 172.0.0.12 alpine, will give alpine container the specified ip address.
+46. Assume a situation when u need a set of container with same name in same user defined network, example to load balancing. There you can use: docker run --network mynet1 --network-alias webserver alpine. Now if other container on mynet1 tries to ping webserver, one of all will response
+To make sure that multiple containers providing a service can be reached via the same name. This can be implemented by network-alias. It adds all container's IP in hostfile but with same name of all containers on same network, by this way, if you ping by name, DNS will send packet  IP for DNS: 127.0.0.11
+47. You can use links to add an alias of a container. Suppose for a reason a container need to access service given by containers in seperate netowrk. There by using link you can resolve a container by name via: --link name:alias
+
+CONTAINER BEHAVIOR
+(Suppose you want to use different DB by time for a web server container. How will you do that? Generally we do this by using env variable)
+
+48. Enviroment variables: we can supply values using env variables. Pass any env var whether it is asked by container or not through: docker container run -e "test=5" alpine
+49. In dockerfile: ENV test="5" test2="6" will set env when container runs, run cmd: export to see all envs, beneath of that, u can also use -e before running container to overwrite envs.
+50. with --env-file u can send a file conains env vars list in form of test=5 \n test2=6
+51. Docker can automatically take env var from local, just create env var: export test=5 and then run container with: docker run -e test alpine . docker will assign test to 5.
+52. How do you deal with applications that can't be configured through environment variables?
+		By pre-processing a configuration file to interpolate the value of environment variables. or, By using a custom script to configure and start the application.
+53. Why can it be useful to replace the current shell or process with another process using the exec function of bash (and other shells/languages)?
+		To make sure that the right application becomes the process with the PID 1 and will receive signals.
+Yaml
+54. yaml has: key-value pair where value can be maps, scalar, list.
+	Maps starts with 2 indent with key in next line
+	list starts with a - after 2 indent from key in next line.
+name: bablu
+
+user:
+  Uname: bablushaw
+  attr:
+    country: India
+	skills: Docker
+  languages: 
+    - python
+	- java
+Here, languages is key of list, attr is key of map and name is key of scalar.
+Docker-compose
+55. To use docker-compose, first install it.
+56. compose file must be in docker-compose.yaml
+57. basic compose file:
+
+version: '3.3'
+
+services:
+  web: 
+    image: nginx:latest
+    ports: 
+      - 80:80
+    stdin_open: true
+    tty: true
+    volumes:
+      - /home/vagrant/jfahrer/learn/html:/usr/share/nginx/html
+
+  pg:
+    image: postgres:9.6-alpine
+    env_file: 
+      - ./../db.env
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+
+  alpine:
+    image: alpine
+    stdin_open: true
+    tty: true
+    command: sh
+	
+volumes:
+  pg-data:
+
+
+
+
+58. Run "docker-compose up" by staying on the dir which contains the docker-compose file. This will make docker-compose to read the file and start the services
+59. Run "docker-compose down" staying on the same dir, will stop and remove all resources mantioned in the file, ofcourse except volumes for persistence.
+60. Run "docker-compose up web" will start only web service mantioneed in file
+61. U can exec sh of a container ran through docker-compose by service name: docker-compose exec web sh
+62. docker-compose stop web, can stop a service and docker-compose rm web can remove a service
+63. We don't need to mantain 2 env files, keep all env vars in a single file, name it, <.env> and list all required env vars in docker-compose file, ex:
+
+webapp:
+  image: pg_webapp
+  environment:
+    - POSTGRES_DB
+    - POSTGRES_USER
+    - POSTGRES_HOST
+
+postgres:
+  image: pg_db
+  environment:
+    - DB_SCHEMA_FILE
+    - DB_FUNC
+
+ex of .env file
+
+POSTGRES_DB=root
+POSTGRES_USER=root
+POSTGRES_HOST=postgres
+DB_SCHEMA_FILE=abc.sql
+DB_FUNC=xyz.pql
+
+64. We can specify dependancy in docker-compose, it is required when we're dealing with multiple containers and 1 of them depends on other. In example, Specifying our webapp depends on db, then:
+
+webapp:
+  image: pg_webapp
+  depends_on:
+    - pg
+
+pg: 
+  image:postgres
+  
+By this way, webapp will wait until pg service is ready, but notice that docker will start webapp immediately after pg... but it is possible that pg is started but yet preparing to give service. That time it may lead some problem. so as programmer u should design ur program to wait until pg is ready.
+
+65. Docker-compose can build image too. use directive: build: Ex:
+service:
+  pg:
+    build:
+      context: <locn of dockerfile>
+66. docker-compose up --scale webapp=3
+
+	LAYERS
+
+67. An image consists of layer, and layer are filesystem changes.	
+68. Each filesystem change in existing docker image is a new layer. So in dockerfile if an instruction contains something like, move, copy, add, rm etc. will create a new layer. So, each layer is an instruction in dockerfile but each instruction is not a layer for ex: cmd or Entrypoint 
+
+69. while downloading something to build a layer for image, it first check the timestamp of the file and compare with the cache if it was already build earlier. if yes, docker will not download the file and use the cache to build new layer. But for a case where docker has to copy file locally to layer, it will not check for timestamp but checksum of file.
+
+70. Cache layers are nothing but images, those images are called dangling images. To see all images including dangling, use: docker images ls -a. Docker has command: <docker image prune> this will delete all dangleing images. It will delete those which is not used in any image with tag.
+
+71. As we know that the more RUN,COPY,ADD directives in dokcer-compose, the larger the image size. How to reduce image size= how to reduce run commands. SOlution is to merge all run commands using(&&)
+
+		OPTIMIZING AN IMAGE
+
+72. Ex, dockerfile which we need to reduce in size
+
+FROM debian:buster-slim
+
+RUN apt-get update
+RUN apt-get install -y nginx
+RUN rm /var/log/nginx/access.log && ln -s /dev/stdout /var/log/nginx/access.log
+RUN rm /var/log/nginx/error.log && ln -s /dev/stderr /var/log/nginx/error.log
+
+ADD http://example.com/index.html /var/www/html/example.html
+
+CMD ["/usr/sbin/nginx", "-g", "daemon off;"]		
+
+Current size if this built: 148mb
+
+Steps to reduce sizes
+	1. chain all commands together
+	2. remove temp files created by apt update
+	
+new dockerfile:
+
+FROM debian:buster-slim
+
+RUN apt-get update && \
+ apt-get install -y nginx   && \
+ rm /var/log/nginx/access.log && ln -s /dev/stdout /var/log/nginx/access.log  && \
+ rm /var/log/nginx/error.log && ln -s /dev/stderr /var/log/nginx/error.log
+ rm -rf /var/lib/apt/lists/*
+
+ADD http://example.com/index.html /var/www/html/example.html
+
+new size: 130mb
+CMD ["/usr/sbin/nginx", "-g", "daemon off;"]		
+
+72. Image is set of layers and the last layer is overwritten whenever container's filesystem changes. 
+
+73. How much disk space will be consumed by each container(not image) on a system?
+The amount of space consumed by a container is equivalent to the amount of data stored in the writable layer of the container.
+
+74. Best practice to write dockefile:
+	a. "Whatever can be done at build time, should be done at build time". To explain, suppose your container should run a java hello world. 		The ideal case would be to just run the container and hello world would be printed. For this we have to run cmd: java hello-world. But 	before execute it we first have to compile it with cmd: javac hello-world.java. So while writting dockerfile it is good idea to write 		compile cmd in RUN command and exec command in CMD command. Reason is, RUN creates a new layer in image and the new image will always 	have hello-world.class, so container will only have to exec java hello-world. Other side, as we know if we write compile in CMD, then it 	will never create a new layer, results will be whenever the container is run, it will compile before execute. So  "Whatever can be done at 	build time, should be done at build time"
+	
+	b. "In docfkerfile, always mention FROM image name as specific as it could be, don't use latest tag". Explain: suppose, writting a 		dockerfile which runs a python program, if u use python:latest so whenever dockerfile is ran, it will fetch latest python image and if 	future version of compiler has some function depreciated then u might face problem. It is wise to choose light version of images, like 	python:alpine but sometime it need to think, for example python recomends to use debian's kernel flavour and alpine uses apk, other 		example that mostly alpine version only contains what is needed, so u have to apt-get update before using basic things. So choose image 	wisely.
+
+75. Task: Create an image which prints helloworld only after docker run. The image should be light-wt, all buid stuffs should be done in image creation.
+Dockerfile:
+
+FROM openjdk:16-jdk-alpine
+
+WORKDIR /usr/src/demoapp
+COPY HelloWorld.java /usr/src/demoapp
+RUN javac HelloWorld.java
+CMD ["java", "HelloWorld"]
+
+76. During real job, it might happen to change the src code several times and build & run iamge with new code. This might be overwhelming when we have to repeatedly delete last build, create new
+  build, run the new image. One solve is: to use docker-compose. Ex docker-compose file: 
+ 
+version: '3.3'
+services:
+  app:
+    image: hello-world:golang
+	build: 
+	  context: .
+	volumes:
+	  - .:/go/src/app													// Mounting src code dir.
+	command: sh -c "go build hello-world.go && ./hello-world"			// using sh -c we can run more cmds in one line
+	
+With this, i only have to do: docker-compose run app, and latest saved src code will mount to new docker image and it ran. To just build, docker-compose build app
+
+77. difference in docker-compose run app and docker-compose up is, ports will not expose in run.
+
+RUNNING CONTAINERS RESOURCES:
+78. docker container stats: will return resource used by containers.
+
+79. we can limit container resources. Ex: docker container run --memory 256M --cpus 0.25 nginx.(0.25 is % of total cpu available) Check by docker container stats, if nginx has max memory limit.
+

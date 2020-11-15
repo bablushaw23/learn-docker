@@ -1,0 +1,24 @@
+version: '3.3'
+
+services:
+  webapp:
+    image: jfahrer/demo_web_app:latest
+    ports:
+      - 9292:9292
+    environment:
+      - POSTGRES_DB
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_HOST
+
+  pg:
+    image: postgres:9.6-alpine
+    environment:
+      - POSTGRES_DB
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+    volumes:
+      - pg-data:/var/lib/postgresql/data    
+
+volumes:
+  pg-data:
