@@ -284,5 +284,10 @@ With this, i only have to do: docker-compose run app, and latest saved src code 
 RUNNING CONTAINERS RESOURCES:
 78. docker container stats: will return resource used by containers.
 
-79. we can limit container resources. Ex: docker container run --memory 256M --cpus 0.25 nginx.(0.25 is % of total cpu available) Check by docker container stats, if nginx has max memory limit.
+79. we can limit container resources. Ex: docker container run --memory 256M --cpus 0.25 nginx.(0.25 is % max can be used of all cycle of 1 cpu available) Check by docker container stats, if nginx has max memory limit.
 
+80. we can reserve resources for container to start by: docker container run --memory-reservation 256M --cpus-shares 1024(amount of cpu cycle) nginx.....more here: https://docs.docker.com/config/containers/resource_constraints/
+
+81. Docker compose, from v3, doesn't support resource constraint.only v2 supports. to support docker engine and swarm, and that is good i only need memory constraint in production.
+
+82. containers are ephemerable, so it is not suggested to write files into it but if anytime for some case we need to write some
